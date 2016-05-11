@@ -2,7 +2,7 @@ breed [butchers butcher]
 breed [parisians parisian]
 patches-own [ act1 act2 propMeatPatch propVeggiePatch switchingParisians]
 parisians-own [ act1? act2? PatchResidence PatchA1 PatchA2 EduLevel Meat? JustSwitched?]
-globals [ size-city PatchesAct2 switchers]
+globals [ size-city PatchesAct2 switchers meatersA1 meatersA2 meatersA1A2 meatersImmo]
 
 to setup
   clear-all
@@ -12,6 +12,7 @@ to setup
   setup-patches
   setup-turtles
   setup-butchers
+  Update-globals
 end
 
 to setup-patches
@@ -64,6 +65,7 @@ end
 to go
   GetActive
   Update-Color
+  Update-globals
   tick
 end
 
@@ -149,7 +151,13 @@ to count-switchers
    ask patches with [switchingParisians = 0] [set pcolor white]
   ask patches with [switchingParisians > 0] [ set pcolor 10 - switchingParisians ]
    ask patches with [switchingParisians > 10] [ set pcolor 0]
- 
+end
+
+to Update-globals
+  set meatersA1 round((count parisians with [Meat? = 1 and act1? = 1 and act2? = 0] * 100)/ count parisians with [act1? = 1 and act2? = 0])
+   set meatersA2 round((count parisians with [Meat? = 1 and act1? = 0 and act2? = 1] * 100)/ count parisians with [act1? = 0 and act2? = 1])
+ set meatersA1A2 round((count parisians with [Meat? = 1 and act1? = 1 and act2? = 1] * 100)/ count parisians with [act1? = 1 and act2? = 1])
+ set meatersImmo round((count parisians with [Meat? = 1 and act1? = 0 and act2? = 0] * 100)/ count parisians with [act1? = 0 and act2? = 0])
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -260,7 +268,7 @@ MONITOR
 190
 412
 % meat-eaters A1
-round((count parisians with [Meat? = 1 and act1? = 1 and act2? = 0] * 100)/ count parisians with [act1? = 1 and act2? = 0])
+meatersA1
 17
 1
 11
@@ -372,6 +380,27 @@ round((count parisians with [Meat? = 1 ] * 100)/ count parisians)
 17
 1
 11
+
+PLOT
+568
+453
+768
+603
+plot 1
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -10873583 true "" "plot meatersA1"
+"pen-1" 1.0 0 -14070903 true "" "plot meatersA2"
+"pen-2" 1.0 0 -15302303 true "" "plot meatersA1A2"
+"pen-3" 1.0 0 -955883 true "" "plot meatersImmo"
 
 @#$#@#$#@
 ## WHAT IS IT?
