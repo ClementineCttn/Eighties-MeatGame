@@ -7,7 +7,6 @@ globals [ size-city PatchesAct2 switchers meatersA1 meatersA2 meatersA1A2 meater
 to setup
   clear-all
   reset-ticks
-  set k 1
   set switchers 0
   setup-patches
   setup-turtles
@@ -24,7 +23,7 @@ to setup-patches
   ask patches with [pycor > (0.75 * size-city)] [set act1 0]
   ask patches with [pxcor < (0.25 * size-city)] [set act1 0]
   ask patches with [pycor < (0.25 * size-city)] [set act1 0]
-  repeat N2 [ ask one-of patches [set act2 1] ] 
+  repeat N2 [ ask one-of patches [set act2 1] ]
   ask patches with [act1 = 1 and act2 = 0] [set pcolor 17]
   ask patches with [act1 = 1 and act2 = 1] [set pcolor 27]
   ask patches with [act1 = 0 and act2 = 1] [set pcolor 67]
@@ -33,8 +32,8 @@ end
 
 to setup-turtles
    create-parisians nPeople [
-     set color black 
-     setxy random-xcor random-ycor 
+     set color black
+     setxy random-xcor random-ycor
      set act1? random 2
      set act2? random 2
      set EduLevel random 3
@@ -55,11 +54,21 @@ to setup-turtles
 end
 
 to setup-butchers
-  create-butchers nPeople * EquipmentPerPerson 
-  [setxy random-xcor random-ycor 
+  create-butchers nPeople * EquipmentPerPerson
+  [setxy random-xcor random-ycor
     set shape "box"
     set color black
     set size 0.01]
+end
+
+to go-openmole
+  reset-ticks
+  set switchers 0
+  setup-patches
+  setup-turtles
+  setup-butchers
+  Update-globals
+  repeat 50 [go]
 end
 
 to go
@@ -104,7 +113,7 @@ to doA2
     let r random-float 1
     ifelse Meat? = 1 [
       let propVeggieOfMyPatch [propVeggiePatch] of patch-here
-      if r < propVeggieOfMyPatch * k [set Meat? 0 
+      if r < propVeggieOfMyPatch * k [set Meat? 0
         set switchers switchers + 1
         set JustSwitched? 1]
     ] [
@@ -124,7 +133,7 @@ to comeBack
     let r random-float 1
     ifelse Meat? = 1 [
       let propVeggieOfMyPatch [propVeggiePatch] of patch-here
-      if r < propVeggieOfMyPatch * k [set Meat? 0 
+      if r < propVeggieOfMyPatch * k [set Meat? 0
         set switchers switchers + 1
         set JustSwitched? 1]
     ] [
@@ -401,6 +410,23 @@ PENS
 "pen-1" 1.0 0 -14070903 true "" "plot meatersA2"
 "pen-2" 1.0 0 -15302303 true "" "plot meatersA1A2"
 "pen-3" 1.0 0 -955883 true "" "plot meatersImmo"
+
+BUTTON
+276
+102
+402
+135
+NIL
+go-openmole
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -745,7 +771,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.0.5
+NetLogo 5.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
