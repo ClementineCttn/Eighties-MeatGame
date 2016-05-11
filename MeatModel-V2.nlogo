@@ -1,15 +1,16 @@
 breed [butchers butcher]
 breed [parisians parisian]
-patches-own [ act1 act2 propMeatPatch propVeggiePatch switchingParisians]
+patches-own [ act1 act2 propGlobalMeaterPatch propGlobalVeggiePatch propLocalMeaterPatch propLocalVeggiePatch switchingParisians]
 parisians-own [ act1? act2? PatchResidence PatchA1 PatchA2 EduLevel Meat? JustSwitched?]
-globals [ size-city switchers meatersA1 meatersA2 meatersA1A2 meatersImmo]
+globals [ size-city meatersA1 meatersA2 meatersA1A2 meatersImmo Edu0 Edu1 Edu2 switch-To-Meat switch-To-Veg]
 
 to setup
   clear-all
   reset-ticks
-  set switchers 0
+  set switch-To-Meat 0
+  set switch-To-Veg 0
   setup-patches
-  setup-turtles
+  setup-parisians
   setup-butchers
   Update-globals
 end
@@ -23,22 +24,43 @@ to setup-patches
   ask patches with [pxcor < (0.25 * size-city)] [set act1 0]
   ask patches with [pycor < (0.25 * size-city)] [set act1 0]
   repeat N2 [ ask one-of patches [set act2 1] ] 
-  ask patches with [act1 = 1 and act2 = 0] [set pcolor 17]
-  ask patches with [act1 = 1 and act2 = 1] [set pcolor 27]
-  ask patches with [act1 = 0 and act2 = 1] [set pcolor 67]
-  ask patches with [act1 = 0 and act2 = 0] [set pcolor 97]
+  ;ask patches with [act1 = 1 and act2 = 0] [set pcolor 17]
+  ;ask patches with [act1 = 1 and act2 = 1] [set pcolor 27]
+  ;ask patches with [act1 = 0 and act2 = 1] [set pcolor 67]
+  ;ask patches with [act1 = 0 and act2 = 0] [set pcolor 97]
 end
 
-to setup-turtles
+to setup-parisians
    create-parisians nPeople [
      set color black 
      setxy random-xcor random-ycor 
-     set act1? random 2
-     set act2? random 2
+    ; set act1? random 2
+    ; set act2? random 2
      set EduLevel random 3
      let randomMeat random-float 1
      if randomMeat < probMeat [set Meat? 1]
       ]
+   ask parisians with [EduLevel = 0] [
+     let A1 random-float 1
+     ifelse A1 < ProbabilityOfActivityEdu0 [set act1? 1] [set act1? 0]
+     let A2 random-float 1
+     ifelse A2 < ProbabilityOfActivityEdu0 [set act2? 1] [set act2? 0]
+     ]
+   
+   ask parisians with [EduLevel = 1] [
+     let A1 random-float 1
+     ifelse A1 < ProbabilityOfActivityEdu1 [set act1? 1] [set act1? 0]
+     let A2 random-float 1
+     ifelse A2 < ProbabilityOfActivityEdu1 [set act2? 1] [set act2? 0]
+     ]
+   
+   ask parisians with [EduLevel = 2] [
+     let A1 random-float 1
+     ifelse A1 < ProbabilityOfActivityEdu2 [set act1? 1] [set act1? 0]
+     let A2 random-float 1
+     ifelse A2 < ProbabilityOfActivityEdu2 [set act2? 1] [set act2? 0]
+     ]
+   
 ; ask parisians with [act1? = 1 and act2? = 0] [set color 13]
  ; ask parisians with [act1? = 1 and act2? = 1] [set color black]
  ; ask parisians with [act1? = 0 and act2? = 1] [set color 73]
@@ -61,10 +83,16 @@ to setup-butchers
 end
 
 to go
+  initialise-Switches
   GetActive
   Update-Color
   Update-globals
   tick
+end
+
+to initialise-Switches
+  set switch-To-Meat 0
+  set switch-To-Veg 0  
 end
 
 to GetActive
@@ -80,56 +108,49 @@ end
 to doA1
   ask parisians with [act1? = 1] [move-to PatchA1]
   count-minority
-  ask parisians with [act2? = 1] [
-    let r random-float 1
-    ifelse Meat? = 1 [
-      let propVeggieOfMyPatch [propVeggiePatch] of patch-here
-      if r < propVeggieOfMyPatch * k [set Meat? 0 set switchers switchers + 1 set JustSwitched? 1]
-    ] [
-    let propMeatOfMyPatch [propMeatPatch] of patch-here
-     if r < propMeatOfMyPatch * k [set Meat? 1 set switchers switchers + 1 set JustSwitched? 1]
-    ]
-      ]
-   count-switchers
+  ask parisians with [act1? = 1] [Interact-and-update-eating-behaviour]
+    count-switchers
 end
 
 to doA2
-  ask parisians with [act2? = 1] [
-    move-to PatchA2
-    ]
+  ask parisians with [act2? = 1] [move-to PatchA2]
   count-minority
   ask parisians with [act2? = 1] [
-    let r random-float 1
-    ifelse Meat? = 1 [
-      let propVeggieOfMyPatch [propVeggiePatch] of patch-here
-      if r < propVeggieOfMyPatch * k [set Meat? 0 
-        set switchers switchers + 1
-        set JustSwitched? 1]
-    ] [
-    let propMeatOfMyPatch [propMeatPatch] of patch-here
-     if r < propMeatOfMyPatch * k [set Meat? 1 set switchers switchers + 1
-       set JustSwitched? 1]
-    ]
+   Interact-and-update-eating-behaviour
     set PatchA2 one-of patches with [act2 = 1]
     ]
  count-switchers
+end
+
+to Interact-and-update-eating-behaviour
+ 
+   if Global-Switch [
+      let r-global random-float 1
+      ifelse Meat? = 1 [
+       let propGlobalVeggieOfMyPatch [propGlobalVeggiePatch] of patch-here
+       if r-global * 100 < propGlobalVeggieOfMyPatch * k-global [set Meat? 0 set switch-To-Veg switch-To-Veg + 1 set JustSwitched? 1]
+     ] [
+    let propGlobalMeaterOfMyPatch [propGlobalMeaterPatch] of patch-here
+     if r-global * 100  < propGlobalMeaterOfMyPatch * k-global [set Meat? 1 set switch-To-Meat switch-To-Meat + 1 set JustSwitched? 1]
+    ]
+   ]
+     if Local-Switch [
+         let r-local random-float 1
+    ifelse Meat? = 1 [
+       let propLocalVeggieOfMyPatch [propLocalVeggiePatch] of patch-here
+         if r-local * 100  < propLocalVeggieOfMyPatch * k-local [set Meat? 0 set switch-To-Veg switch-To-Veg + 1 set JustSwitched? 1]
+     ] [
+    let propLocalMeaterOfMyPatch [propLocalMeaterPatch] of patch-here
+     if r-local * 100  < propLocalMeaterOfMyPatch * k-local [set Meat? 1 set switch-To-Meat switch-To-Meat + 1 set JustSwitched? 1]
+     ]
+   ]
 end
 
 to comeBack
    ask parisians [move-to PatchResidence]
    count-minority
     ask parisians [
-    let r random-float 1
-    ifelse Meat? = 1 [
-      let propVeggieOfMyPatch [propVeggiePatch] of patch-here
-      if r < propVeggieOfMyPatch * k [set Meat? 0 
-        set switchers switchers + 1
-        set JustSwitched? 1]
-    ] [
-    let propMeatOfMyPatch [propMeatPatch] of patch-here
-     if r < propMeatOfMyPatch * k [set Meat? 1 set switchers switchers + 1
-       set JustSwitched? 1]
-    ]
+   Interact-and-update-eating-behaviour
     ]
  count-switchers
 end
@@ -137,18 +158,30 @@ end
 to Update-Color
     ask parisians with [Meat? = 1] [set color red]
     ask parisians with [Meat? = 0] [set color white]
+    count-minority
+    let currentMeanMeat 50 ;(count parisians with [Meat? = 1]  * 100)/ count parisians
+    let currentMeanVeggie 50;100 - currentMeanMeat
+     ask patches with [propLocalMeaterPatch > currentMeanMeat] [set pcolor red]
+    ask patches with [propLocalVeggiePatch > currentMeanVeggie] [set pcolor white]
 end
 
+
 to count-minority
-  ask patches [ set propMeatPatch (count parisians-here with [Meat? = 1] * 100)/ count parisians with [Meat? = 1]
-                set propVeggiePatch (count parisians-here with [Meat? = 0] * 100)/ count parisians with [Meat? = 0]]
+  ask patches [ 
+    set propGlobalMeaterPatch (count parisians-here with [Meat? = 1] * 100)/ count parisians with [Meat? = 1]
+    set propGlobalVeggiePatch (count parisians-here with [Meat? = 0] * 100)/ count parisians with [Meat? = 0]
+   ifelse any? parisians-here [
+     set propLocalMeaterPatch (count parisians-here with [Meat? = 1] * 100)/ count parisians-here
+      set propLocalVeggiePatch (count parisians-here with [Meat? = 0] * 100)/ count parisians-here
+      ] [
+      set propLocalMeaterPatch 0  set propLocalVeggiePatch 0 
+      ]
+                ]
 end
 
 to count-switchers
   ask patches [ set switchingParisians (switchingParisians + count parisians-here with [JustSwitched? = 1]) ]
-   ask patches with [switchingParisians = 0] [set pcolor white]
-  ask patches with [switchingParisians > 0] [ set pcolor 10 - switchingParisians ]
-   ask patches with [switchingParisians > 10] [ set pcolor 0]
+  
 end
 
 to Update-globals
@@ -156,13 +189,17 @@ to Update-globals
    set meatersA2 round((count parisians with [Meat? = 1 and act1? = 0 and act2? = 1] * 100)/ count parisians with [act1? = 0 and act2? = 1])
  set meatersA1A2 round((count parisians with [Meat? = 1 and act1? = 1 and act2? = 1] * 100)/ count parisians with [act1? = 1 and act2? = 1])
  set meatersImmo round((count parisians with [Meat? = 1 and act1? = 0 and act2? = 0] * 100)/ count parisians with [act1? = 0 and act2? = 0])
+ set Edu0 round((count parisians with [Meat? = 1 and EduLevel = 0 ] * 100)/ count parisians with [EduLevel = 0 ])
+ set Edu1 round((count parisians with [Meat? = 1 and EduLevel = 1 ] * 100)/ count parisians with [EduLevel = 1 ])
+ set Edu2 round((count parisians with [Meat? = 1 and EduLevel = 2 ] * 100)/ count parisians with [EduLevel = 2 ])
+
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
 477
 20
-760
-324
+722
+285
 -1
 -1
 13.0
@@ -176,9 +213,9 @@ GRAPHICS-WINDOW
 0
 1
 0
-20
+17
 0
-20
+17
 0
 0
 1
@@ -209,7 +246,7 @@ BUTTON
 97
 go
 go
-NIL
+T
 1
 T
 OBSERVER
@@ -228,17 +265,17 @@ nPeople
 nPeople
 0
 16000
-2000
+2500
 100
 1
 NIL
 HORIZONTAL
 
 SLIDER
-29
-186
-236
-219
+871
+389
+1043
+422
 EquipmentPerPerson
 EquipmentPerPerson
 0
@@ -278,17 +315,6 @@ MONITOR
 563
 % meat-eaters A2
 round((count parisians with [Meat? = 1 and act1? = 0 and act2? = 1] * 100)/ count parisians with [act1? = 0 and act2? = 1])
-17
-1
-11
-
-MONITOR
-64
-266
-136
-311
-NIL
-switchers
 17
 1
 11
@@ -336,22 +362,22 @@ probMeat
 probMeat
 0
 1
-0.57
+0.5
 0.01
 1
 NIL
 HORIZONTAL
 
 SLIDER
-282
-285
-454
-318
-k
-k
+804
+253
+976
+286
+k-global
+k-global
 0
 0.2
-0.05
+0.2
 0.01
 1
 NIL
@@ -380,11 +406,11 @@ round((count parisians with [Meat? = 1 ] * 100)/ count parisians)
 11
 
 PLOT
-568
-453
-768
-603
-plot 1
+356
+342
+614
+492
+% Meat Eaters by Mobility
 NIL
 NIL
 0.0
@@ -392,28 +418,166 @@ NIL
 0.0
 10.0
 true
-false
+true
 "" ""
 PENS
-"default" 1.0 0 -10873583 true "" "plot meatersA1"
-"pen-1" 1.0 0 -14070903 true "" "plot meatersA2"
-"pen-2" 1.0 0 -15302303 true "" "plot meatersA1A2"
-"pen-3" 1.0 0 -955883 true "" "plot meatersImmo"
+"A1" 1.0 0 -10873583 true "" "plot meatersA1"
+"A2" 1.0 0 -14070903 true "" "plot meatersA2"
+"A1A2" 1.0 0 -15302303 true "" "plot meatersA1A2"
+"Immo" 1.0 0 -955883 true "" "plot meatersImmo"
 
 SLIDER
-259
-172
-431
-205
+871
+423
+1043
+456
 %PatchA2
 %PatchA2
 0
 100
-30
+33
 1
 1
 NIL
 HORIZONTAL
+
+SLIDER
+803
+130
+996
+163
+ProbabilityOfActivityEdu0
+ProbabilityOfActivityEdu0
+0
+1
+0.25
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+803
+163
+996
+196
+ProbabilityOfActivityEdu1
+ProbabilityOfActivityEdu1
+0
+1
+0.5
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+803
+196
+996
+229
+ProbabilityOfActivityEdu2
+ProbabilityOfActivityEdu2
+0
+1
+0.75
+0.01
+1
+NIL
+HORIZONTAL
+
+PLOT
+617
+342
+863
+492
+% Meat eaters by Edu Level
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"Edu0" 1.0 0 -6759204 true "" "plot  Edu0"
+"Edu1" 1.0 0 -12345184 true "" "plot  Edu1"
+"Edu2" 1.0 0 -14462382 true "" "plot  Edu2"
+
+SWITCH
+794
+15
+928
+48
+Global-Switch
+Global-Switch
+1
+1
+-1000
+
+SWITCH
+794
+49
+928
+82
+Local-Switch
+Local-Switch
+0
+1
+-1000
+
+SLIDER
+803
+286
+976
+319
+k-local
+k-local
+0
+1
+1
+0.0001
+1
+NIL
+HORIZONTAL
+
+BUTTON
+206
+59
+270
+92
+go50
+repeat 50 [go]
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+PLOT
+273
+136
+473
+286
+Conversions
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"toMeat" 1.0 0 -2139308 true "" "plot switch-To-Meat"
+"toVeg" 1.0 0 -6565750 true "" "plot switch-To-Veg"
 
 @#$#@#$#@
 ## WHAT IS IT?
