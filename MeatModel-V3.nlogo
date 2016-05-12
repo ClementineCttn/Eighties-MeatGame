@@ -2,7 +2,8 @@ breed [butchers butcher]
 breed [parisians parisian]
 patches-own [ act1 act2 propGlobalMeaterPatch propGlobalVeggiePatch propLocalMeaterPatch propLocalVeggiePatch switchingParisians 
   AttractEdu0 AttractEdu1 AttractEdu2]
-parisians-own [ act1? act2? PatchResidence PatchA1 PatchA2 EduLevel Meat? JustSwitched?]
+parisians-own [ act1? act2? PatchResidence PatchA1 PatchA2 EduLevel Meat? JustSwitched? probaA0 probaA1 probaA2 ;PatchEduLevel
+  ]
 globals [ size-city meatersA1 meatersA2 meatersA1A2 meatersImmo Edu0 Edu1 Edu2 switch-To-Meat switch-To-Veg]
 
 to setup
@@ -34,9 +35,9 @@ to setup-patches
   repeat (1 / 3) * NCells [ ask one-of patches [set AttractEdu1 1] ]
   repeat (1 / 3) * NCells [ ask one-of patches [set AttractEdu2 1] ]
   
-  ; ask patches with [AttractEdu0 = 1 ] [set pcolor white]
-  ;ask patches with [AttractEdu1 = 1] [set pcolor grey]
-  ;ask patches with [AttractEdu2 = 1 ] [set pcolor black]
+   ask patches with [AttractEdu0 = 1 ] [set pcolor white]
+  ask patches with [AttractEdu1 = 1] [set pcolor grey]
+  ask patches with [AttractEdu2 = 1 ] [set pcolor black]
  
  ;ask patches with [act1 = 1 and act2 = 0] [set pcolor 17]
   ;ask patches with [act1 = 1 and act2 = 1] [set pcolor 27]
@@ -48,9 +49,7 @@ to setup-parisians
    create-parisians nPeople [
      set color black 
      setxy random-xcor random-ycor 
-    ; set act1? random 2
-    ; set act2? random 2
-     set EduLevel random 3
+      set EduLevel random 3
      let randomMeat random-float 1
      if randomMeat < probMeat [set Meat? 1]
       ]
@@ -59,6 +58,13 @@ to setup-parisians
      ifelse A1 < ProbabilityOfActivityEdu0 [set act1? 1] [set act1? 0]
      let A2 random-float 1
      ifelse A2 < ProbabilityOfActivityEdu0 [set act2? 1] [set act2? 0]
+         
+     let pA0 1
+     let pA1 pA0 * (1 + ElasticityEduLevel)
+     let pA2 pA0 * (1 + ElasticityEduLevel) ^ 2
+     set probaA0 pA0 / (pA0 + pA1 + pA2)
+     set probaA1 pA1 / (pA0 + pA1 + pA2)
+     set probaA2 pA2 / (pA0 + pA1 + pA2)
      ]
    
    ask parisians with [EduLevel = 1] [
@@ -66,6 +72,13 @@ to setup-parisians
      ifelse A1 < ProbabilityOfActivityEdu1 [set act1? 1] [set act1? 0]
      let A2 random-float 1
      ifelse A2 < ProbabilityOfActivityEdu1 [set act2? 1] [set act2? 0]
+     
+     let pA1 1
+     let pA0 pA1 * (1 + ElasticityEduLevel)
+     let pA2 pA1 * (1 + ElasticityEduLevel)
+     set probaA0 pA0 / (pA0 + pA1 + pA2)
+     set probaA1 pA1 / (pA0 + pA1 + pA2)
+     set probaA2 pA2 / (pA0 + pA1 + pA2) 
      ]
    
    ask parisians with [EduLevel = 2] [
@@ -73,6 +86,13 @@ to setup-parisians
      ifelse A1 < ProbabilityOfActivityEdu2 [set act1? 1] [set act1? 0]
      let A2 random-float 1
      ifelse A2 < ProbabilityOfActivityEdu2 [set act2? 1] [set act2? 0]
+     
+     let pA2 1
+     let pA1 pA2 * (1 + ElasticityEduLevel)
+     let pA0 pA2 * (1 + ElasticityEduLevel) ^ 2
+     set probaA0 pA0 / (pA0 + pA1 + pA2)
+     set probaA1 pA1 / (pA0 + pA1 + pA2)
+     set probaA2 pA2 / (pA0 + pA1 + pA2)
      ]
    
 ; ask parisians with [act1? = 1 and act2? = 0] [set color 13]
@@ -81,8 +101,50 @@ to setup-parisians
   ;ask parisians with [act1? = 1] [set color yellow]
  ask parisians [
    set PatchResidence patch-here
-   set PatchA1 one-of patches with [act1 = 1]
-   set PatchA2 one-of patches with [act2 = 1]
+  
+  
+  let EduPatchForA1 random-float 1
+   ifelse EduPatchForA1 < probaA0 [
+  ;   set patchEduLevel 0
+     ifelse any? patches with [act1 = 1 and AttractEdu0 = 1]
+     [set PatchA1 one-of patches with [act1 = 1 and AttractEdu0 = 1]]
+     [set PatchA1 one-of patches with [act1 = 1]]
+   ][
+    ifelse EduPatchForA1 < probaA1 [
+  ;   set patchEduLevel 1
+    ifelse any? patches with [act1 = 1 and AttractEdu1 = 1]
+     [set PatchA1 one-of patches with [act1 = 1 and AttractEdu1 = 1]]
+     [set PatchA1 one-of patches with [act1 = 1]]
+   ][
+  ; set patchEduLevel 2
+   ifelse any? patches with [act1 = 1 and AttractEdu2 = 1]
+     [set PatchA1 one-of patches with [act1 = 1 and AttractEdu2 = 1]]
+     [set PatchA1 one-of patches with [act1 = 1]]
+   ]
+   ]
+    
+     
+  let EduPatchForA2 random-float 1
+   ifelse EduPatchForA2 < probaA0 [
+  ;   set patchEduLevel 0
+     ifelse any? patches with [act2 = 1 and AttractEdu0 = 1]
+     [set PatchA2 one-of patches with [act2 = 1 and AttractEdu0 = 1]]
+     [set PatchA2 one-of patches with [act2 = 1]]
+   ][
+    ifelse EduPatchForA2 < probaA1 [
+  ;   set patchEduLevel 1
+    ifelse any? patches with [act2 = 1 and AttractEdu1 = 1]
+     [set PatchA2 one-of patches with [act2 = 1 and AttractEdu1 = 1]]
+     [set PatchA2 one-of patches with [act2 = 1]]
+   ][
+  ; set patchEduLevel 2
+   ifelse any? patches with [act2 = 1 and AttractEdu2 = 1]
+     [set PatchA2 one-of patches with [act2 = 1 and AttractEdu2 = 1]]
+     [set PatchA2 one-of patches with [act2 = 1]]
+   ]
+   ]
+     
+     
    set color white]
   ask parisians with [Meat? = 1] [set color red]
  ask parisians with [Meat? = 0] [set color white]
@@ -131,7 +193,30 @@ to doA2
   count-minority
   ask parisians with [act2? = 1] [
    Interact-and-update-eating-behaviour
-    set PatchA2 one-of patches with [act2 = 1]
+   
+   
+     let EduPatchForA2 random-float 1
+   ifelse EduPatchForA2 < probaA0 [
+  ;   set patchEduLevel 0
+     ifelse any? patches with [act2 = 1 and AttractEdu0 = 1]
+     [set PatchA2 one-of patches with [act2 = 1 and AttractEdu0 = 1]]
+     [set PatchA2 one-of patches with [act2 = 1]]
+   ][
+    ifelse EduPatchForA2 < probaA1 [
+  ;   set patchEduLevel 1
+    ifelse any? patches with [act2 = 1 and AttractEdu1 = 1]
+     [set PatchA2 one-of patches with [act2 = 1 and AttractEdu1 = 1]]
+     [set PatchA2 one-of patches with [act2 = 1]]
+   ][
+  ; set patchEduLevel 2
+   ifelse any? patches with [act2 = 1 and AttractEdu2 = 1]
+     [set PatchA2 one-of patches with [act2 = 1 and AttractEdu2 = 1]]
+     [set PatchA2 one-of patches with [act2 = 1]]
+   ]
+   ]
+     
+     
+     
     ]
  count-switchers
 end
@@ -173,10 +258,10 @@ to Update-Color
     ask parisians with [Meat? = 1] [set color red]
     ask parisians with [Meat? = 0] [set color white]
     count-minority
-    let currentMeanMeat 50 ;(count parisians with [Meat? = 1]  * 100)/ count parisians
-    let currentMeanVeggie 50;100 - currentMeanMeat
-     ask patches with [propLocalMeaterPatch > currentMeanMeat] [set pcolor red]
-    ask patches with [propLocalVeggiePatch > currentMeanVeggie] [set pcolor white]
+   ; let currentMeanMeat 50 ;(count parisians with [Meat? = 1]  * 100)/ count parisians
+   ;let currentMeanVeggie 50;100 - currentMeanMeat
+    ; ask patches with [propLocalMeaterPatch > currentMeanMeat] [set pcolor red]
+    ;ask patches with [propLocalVeggiePatch > currentMeanVeggie] [set pcolor white]
 end
 
 
@@ -260,7 +345,7 @@ BUTTON
 97
 go
 go
-T
+NIL
 1
 T
 OBSERVER
@@ -279,7 +364,7 @@ nPeople
 nPeople
 0
 16000
-2500
+1000
 100
 1
 NIL
@@ -376,7 +461,7 @@ probMeat
 probMeat
 0
 1
-0.9
+0.5
 0.01
 1
 NIL
@@ -527,7 +612,7 @@ SWITCH
 48
 Global-Switch
 Global-Switch
-0
+1
 1
 -1000
 
@@ -538,7 +623,7 @@ SWITCH
 82
 Local-Switch
 Local-Switch
-1
+0
 1
 -1000
 
@@ -592,6 +677,21 @@ true
 PENS
 "toMeat" 1.0 0 -2139308 true "" "plot switch-To-Meat"
 "toVeg" 1.0 0 -6565750 true "" "plot switch-To-Veg"
+
+SLIDER
+92
+297
+245
+330
+ElasticityEduLevel
+ElasticityEduLevel
+-1
+1
+-0.51
+0.01
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
