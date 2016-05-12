@@ -1,10 +1,23 @@
 breed [butchers butcher]
 breed [parisians parisian]
-patches-own [ act1 act2 propGlobalMeaterPatch propGlobalVeggiePatch propLocalMeaterPatch propLocalVeggiePatch switchingParisians 
-  AttractEdu0 AttractEdu1 AttractEdu2]
+patches-own [
+  act1
+  act2
+  propGlobalMeaterPatch
+  propGlobalVeggiePatch
+  propLocalMeaterPatch
+  propLocalVeggiePatch
+  switchingParisians
+  AttractEdu0
+  AttractEdu1
+  AttractEdu2]
 parisians-own [ act1? act2? PatchResidence PatchA1 PatchA2 EduLevel Meat? JustSwitched? probaA0 probaA1 probaA2 ;PatchEduLevel
   ]
 globals [ size-city meatersA1 meatersA2 meatersA1A2 meatersImmo Edu0 Edu1 Edu2 switch-To-Meat switch-To-Veg]
+
+;;;;;;;;;;;;;;;;
+;; MAIN
+;;;;;;;;;;;;;;;;
 
 to setup
   clear-all
@@ -17,38 +30,149 @@ to setup
   Update-globals
 end
 
+
+to go
+  initialise-Switches
+  GetActive
+  Update-Color
+  Update-globals
+  tick
+end
+
+;;;;;;;;;;;;;;;;
+;; RANDOM
+;;;;;;;;;;;;;;;;
+
+to-report random-normal-in-bounds [mid dev mmin mmax]
+  let result random-normal mid dev
+  if result < mmin or result > mmax
+    [ report random-normal-in-bounds mid dev mmin mmax ]
+  report result
+end
+
+
+to-report xy-gaussian-excentre [mid dev]
+  let rxnorm random-normal-in-bounds mid dev 0 1
+  let rynorm random-normal-in-bounds mid dev 0 1
+
+  ifelse (rxnorm < mid) [set rxnorm mid + rxnorm ][ set rxnorm rxnorm - mid ]
+  ifelse (rynorm < mid) [set rynorm mid + rynorm ][ set rynorm rynorm - mid ]
+
+  report list round(rxnorm * (world-width - 1)) round( rynorm * (world-width - 1))
+end
+
+to-report xy-gaussian [mid dev]
+  let rxnorm random-normal-in-bounds mid dev 0 1
+  let rynorm random-normal-in-bounds mid dev 0 1
+
+  report list round(rxnorm * (world-width - 1)) round(rynorm * (world-width - 1))
+end
+
+to-report reportXYParisian
+  let xy []
+  if xyParisians = "gaussian" [
+    set xy xy-gaussian meanPGaussian stdPGaussian
+  ]
+
+  if xyParisians = "invGaussian" [
+    set xy xy-gaussian-excentre meanPGaussian stdPGaussian
+  ]
+
+  if xyParisians = "uniform" [
+    set xy list random-xcor random-ycor
+  ]
+
+  report xy
+
+end
+
+to-report reportXYA1
+  let xy []
+  if xyA1 = "gaussian" [
+    set xy xy-gaussian meanA1Gaussian stdA1Gaussian
+  ]
+
+  if xyA1 = "invGaussian" [
+    set xy xy-gaussian-excentre meanA1Gaussian stdA1Gaussian
+  ]
+
+  if xyA1 = "uniform" [
+    set xy list random-xcor random-ycor
+  ]
+
+  report xy
+
+end
+
+
+;;;;;;;;;;;;;;;;
+;; INIT
+;;;;;;;;;;;;;;;;
+
 to setup-patches
   set size-city max-pxcor + 1
   let NCells size-city * size-city
   let N2 (%PatchA2 / 100) * NCells
+  let N1 (%PatchA1 / 100) * NCells
+
   ask patches [
-    set act1 1 set act2 0 set switchingParisians 0
+    set act1 0 set act2 0 set switchingParisians 0
     set AttractEdu0 0 set AttractEdu1 0 set AttractEdu2 0
-    ]
-  ask patches with [pxcor > (0.75 * size-city)] [set act1 0]
-  ask patches with [pycor > (0.75 * size-city)] [set act1 0]
-  ask patches with [pxcor < (0.25 * size-city)] [set act1 0]
-  ask patches with [pycor < (0.25 * size-city)] [set act1 0]
-  repeat N2 [ ask one-of patches with [act2 = 0] [set act2 1] ] 
-  
+  ]
+
+  let N1empty N1
+  while [N1empty > 0 ] [
+    let reportedPatch reportXYA1
+    ask patch item 0 reportedPatch item 1 reportedPatch
+     [ if act1 = 0 [
+         set act1 1
+         set N1Empty N1Empty - 1 ]
+     ]
+  ]
+
+  repeat N2 [ ask one-of patches with [act2 = 0] [set act2 1] ]
+
   repeat (1 / 3) * NCells [ ask one-of patches [set AttractEdu0 1] ]
   repeat (1 / 3) * NCells [ ask one-of patches [set AttractEdu1 1] ]
   repeat (1 / 3) * NCells [ ask one-of patches [set AttractEdu2 1] ]
-  
-   ask patches with [AttractEdu0 = 1 ] [set pcolor white]
-  ask patches with [AttractEdu1 = 1] [set pcolor grey]
-  ask patches with [AttractEdu2 = 1 ] [set pcolor black]
- 
- ;ask patches with [act1 = 1 and act2 = 0] [set pcolor 17]
+
+  ;ask patches with [AttractEdu0 = 1 ] [set pcolor white]
+  ;ask patches with [AttractEdu1 = 1] [set pcolor grey]
+  ;ask patches with [AttractEdu2 = 1 ] [set pcolor black]
+
+end
+
+to color-activity
+
+  ask patches  [set pcolor white]
+  if colorA1 [
+    ask patches with [act1 = 1 and act2 = 0] [set pcolor black]
+  ]
+
+  if colorA2 [
+    ask patches with [act1 = 0 and act2 = 1] [set pcolor grey]
+  ]
+
+  if colorA1A2 [
+    ask patches with [act1 = 1 and act2 = 1] [set pcolor red]
+  ]
+
   ;ask patches with [act1 = 1 and act2 = 1] [set pcolor 27]
   ;ask patches with [act1 = 0 and act2 = 1] [set pcolor 67]
-  ;ask patches with [act1 = 0 and act2 = 0] [set pcolor 97]
+  if colorP [
+    ask parisians [
+      ask [PatchResidence] of self [
+        set pcolor orange
+      ]
+    ]
+  ]
 end
 
 to setup-parisians
    create-parisians nPeople [
-     set color black 
-     setxy random-xcor random-ycor 
+     set color black
+     let xycalculated reportXYParisian
+     setxy item 0 reportXYParisian item 1 reportXYParisian
       set EduLevel random 3
      let randomMeat random-float 1
      if randomMeat < probMeat [set Meat? 1]
@@ -58,7 +182,7 @@ to setup-parisians
      ifelse A1 < ProbabilityOfActivityEdu0 [set act1? 1] [set act1? 0]
      let A2 random-float 1
      ifelse A2 < ProbabilityOfActivityEdu0 [set act2? 1] [set act2? 0]
-         
+
      let pA0 1
      let pA1 pA0 * (1 + ElasticityEduLevel)
      let pA2 pA0 * (1 + ElasticityEduLevel) ^ 2
@@ -67,49 +191,49 @@ to setup-parisians
      set probaA2 pA2 / (pA0 + pA1 + pA2)
       let randomMeat0 random-float 1
      ifelse randomMeat0 < probaMeatEdu0  [set Meat? 1] [set Meat? 0]
-    
+
      ]
-   
+
    ask parisians with [EduLevel = 1] [
      let A1 random-float 1
      ifelse A1 < ProbabilityOfActivityEdu1 [set act1? 1] [set act1? 0]
      let A2 random-float 1
      ifelse A2 < ProbabilityOfActivityEdu1 [set act2? 1] [set act2? 0]
-     
+
      let pA1 1
      let pA0 pA1 * (1 + ElasticityEduLevel)
      let pA2 pA1 * (1 + ElasticityEduLevel)
      set probaA0 pA0 / (pA0 + pA1 + pA2)
      set probaA1 pA1 / (pA0 + pA1 + pA2)
-     set probaA2 pA2 / (pA0 + pA1 + pA2) 
+     set probaA2 pA2 / (pA0 + pA1 + pA2)
      ]
-   
+
    ask parisians with [EduLevel = 2] [
      let A1 random-float 1
      ifelse A1 < ProbabilityOfActivityEdu2 [set act1? 1] [set act1? 0]
      let A2 random-float 1
      ifelse A2 < ProbabilityOfActivityEdu2 [set act2? 1] [set act2? 0]
-     
+
      let pA2 1
      let pA1 pA2 * (1 + ElasticityEduLevel)
      let pA0 pA2 * (1 + ElasticityEduLevel) ^ 2
      set probaA0 pA0 / (pA0 + pA1 + pA2)
      set probaA1 pA1 / (pA0 + pA1 + pA2)
      set probaA2 pA2 / (pA0 + pA1 + pA2)
-     
+
        let randomMeat2 random-float 1
      ifelse randomMeat2 < (1 - probaMeatEdu0) [set Meat? 1] [set Meat? 0]
-    
+
      ]
-   
+
 ; ask parisians with [act1? = 1 and act2? = 0] [set color 13]
  ; ask parisians with [act1? = 1 and act2? = 1] [set color black]
  ; ask parisians with [act1? = 0 and act2? = 1] [set color 73]
   ;ask parisians with [act1? = 1] [set color yellow]
  ask parisians [
    set PatchResidence patch-here
-  
-  
+
+
   let EduPatchForA1 random-float 1
    ifelse EduPatchForA1 < probaA0 [
   ;   set patchEduLevel 0
@@ -129,8 +253,8 @@ to setup-parisians
      [set PatchA1 one-of patches with [act1 = 1]]
    ]
    ]
-    
-     
+
+
   let EduPatchForA2 random-float 1
    ifelse EduPatchForA2 < probaA0 [
   ;   set patchEduLevel 0
@@ -150,32 +274,25 @@ to setup-parisians
      [set PatchA2 one-of patches with [act2 = 1]]
    ]
    ]
-     
-     
+
+
    set color white]
   ask parisians with [Meat? = 1] [set color red]
  ask parisians with [Meat? = 0] [set color white]
 end
 
 to setup-butchers
-  create-butchers nPeople * EquipmentPerPerson 
-  [setxy random-xcor random-ycor 
+  create-butchers nPeople * EquipmentPerPerson
+  [setxy random-xcor random-ycor
     set shape "box"
     set color black
     set size 0.01]
 end
 
-to go
-  initialise-Switches
-  GetActive
-  Update-Color
-  Update-globals
-  tick
-end
 
 to initialise-Switches
   set switch-To-Meat 0
-  set switch-To-Veg 0  
+  set switch-To-Veg 0
 end
 
 to GetActive
@@ -200,8 +317,8 @@ to doA2
   count-minority
   ask parisians with [act2? = 1] [
    Interact-and-update-eating-behaviour
-   
-   
+
+
      let EduPatchForA2 random-float 1
    ifelse EduPatchForA2 < probaA0 [
   ;   set patchEduLevel 0
@@ -221,15 +338,15 @@ to doA2
      [set PatchA2 one-of patches with [act2 = 1]]
    ]
    ]
-     
-     
-     
+
+
+
     ]
  count-switchers
 end
 
 to Interact-and-update-eating-behaviour
- 
+
    if Global-Switch [
       let r-global random-float 1
       ifelse Meat? = 1 [
@@ -273,21 +390,21 @@ end
 
 
 to count-minority
-  ask patches [ 
+  ask patches [
     set propGlobalMeaterPatch (count parisians-here with [Meat? = 1] * 100)/ count parisians with [Meat? = 1]
     set propGlobalVeggiePatch (count parisians-here with [Meat? = 0] * 100)/ count parisians with [Meat? = 0]
    ifelse any? parisians-here [
      set propLocalMeaterPatch (count parisians-here with [Meat? = 1] * 100)/ count parisians-here
       set propLocalVeggiePatch (count parisians-here with [Meat? = 0] * 100)/ count parisians-here
       ] [
-      set propLocalMeaterPatch 0  set propLocalVeggiePatch 0 
+      set propLocalMeaterPatch 0  set propLocalVeggiePatch 0
       ]
                 ]
 end
 
 to count-switchers
   ask patches [ set switchingParisians (switchingParisians + count parisians-here with [JustSwitched? = 1]) ]
-  
+
 end
 
 to Update-globals
@@ -304,11 +421,11 @@ end
 GRAPHICS-WINDOW
 477
 20
-722
-285
+896
+460
 -1
 -1
-13.0
+13.2
 1
 10
 1
@@ -319,9 +436,9 @@ GRAPHICS-WINDOW
 0
 1
 0
-17
+30
 0
-17
+30
 0
 0
 1
@@ -371,17 +488,17 @@ nPeople
 nPeople
 0
 16000
-1000
+600
 100
 1
 NIL
 HORIZONTAL
 
 SLIDER
-871
-389
-1043
-422
+994
+581
+1166
+614
 EquipmentPerPerson
 EquipmentPerPerson
 0
@@ -475,10 +592,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-804
-253
-976
-286
+927
+445
+1099
+478
 k-global
 k-global
 0
@@ -512,10 +629,10 @@ round((count parisians with [Meat? = 1 ] * 100)/ count parisians)
 11
 
 PLOT
-356
-342
-614
-492
+146
+580
+404
+730
 % Meat Eaters by Mobility
 NIL
 NIL
@@ -533,10 +650,10 @@ PENS
 "Immo" 1.0 0 -955883 true "" "plot meatersImmo"
 
 SLIDER
-871
-423
-1043
-456
+994
+615
+1166
+648
 %PatchA2
 %PatchA2
 0
@@ -548,10 +665,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-803
-130
-996
-163
+926
+322
+1119
+355
 ProbabilityOfActivityEdu0
 ProbabilityOfActivityEdu0
 0
@@ -563,10 +680,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-803
-163
-996
-196
+926
+355
+1119
+388
 ProbabilityOfActivityEdu1
 ProbabilityOfActivityEdu1
 0
@@ -578,10 +695,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-803
-196
-996
-229
+926
+388
+1119
+421
 ProbabilityOfActivityEdu2
 ProbabilityOfActivityEdu2
 0
@@ -593,10 +710,10 @@ NIL
 HORIZONTAL
 
 PLOT
-617
-342
-863
-492
+407
+580
+653
+730
 % Meat eaters by Edu Level
 NIL
 NIL
@@ -613,10 +730,10 @@ PENS
 "Edu2" 1.0 0 -14462382 true "" "plot  Edu2"
 
 SWITCH
-794
-15
-928
-48
+917
+207
+1051
+240
 Global-Switch
 Global-Switch
 1
@@ -624,10 +741,10 @@ Global-Switch
 -1000
 
 SWITCH
-794
-49
-928
-82
+917
+241
+1051
+274
 Local-Switch
 Local-Switch
 0
@@ -635,10 +752,10 @@ Local-Switch
 -1000
 
 SLIDER
-803
-286
-976
-319
+926
+478
+1099
+511
 k-local
 k-local
 0
@@ -714,6 +831,202 @@ probaMeatEdu0
 1
 NIL
 HORIZONTAL
+
+CHOOSER
+1119
+93
+1257
+138
+xyParisians
+xyParisians
+"gaussian" "invGaussian" "uniform"
+0
+
+CHOOSER
+1120
+143
+1258
+188
+xyA1
+xyA1
+"gaussian" "invGaussian" "uniform"
+0
+
+SLIDER
+1273
+93
+1445
+126
+meanPGaussian
+meanPGaussian
+0
+1.0
+0.5
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1459
+94
+1631
+127
+stdPGaussian
+stdPGaussian
+0.0
+1.0
+0.1
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+995
+650
+1167
+683
+%PatchA1
+%PatchA1
+0
+100
+20
+1
+1
+NIL
+HORIZONTAL
+
+BUTTON
+690
+654
+811
+687
+NIL
+color-activity
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+SLIDER
+1274
+150
+1456
+183
+meanA1Gaussian
+meanA1Gaussian
+0
+1
+0.5
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+1467
+150
+1639
+183
+stdA1Gaussian
+stdA1Gaussian
+0
+1
+0.21
+0.01
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+694
+494
+715
+512
+A1
+12
+5.0
+1
+
+TEXTBOX
+673
+610
+823
+628
+Parisians
+12
+25.0
+1
+
+SWITCH
+736
+482
+847
+515
+colorA1
+colorA1
+0
+1
+-1000
+
+SWITCH
+736
+523
+848
+556
+ColorA2
+ColorA2
+0
+1
+-1000
+
+SWITCH
+736
+561
+867
+594
+ColorA1A2
+ColorA1A2
+0
+1
+-1000
+
+SWITCH
+737
+601
+840
+634
+ColorP
+ColorP
+0
+1
+-1000
+
+TEXTBOX
+692
+535
+718
+553
+A2
+12
+0.0
+1
+
+TEXTBOX
+683
+575
+718
+593
+A1A2
+12
+15.0
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -1058,7 +1371,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.0.5
+NetLogo 5.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@

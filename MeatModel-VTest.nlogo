@@ -23,7 +23,7 @@ to setup-patches
   ask patches with [pycor > (0.75 * size-city)] [set act1 0]
   ask patches with [pxcor < (0.25 * size-city)] [set act1 0]
   ask patches with [pycor < (0.25 * size-city)] [set act1 0]
-  repeat N2 [ ask one-of patches with [act2 = 0] [set act2 1] ] 
+  repeat N2 [ ask one-of patches with [act2 = 0] [set act2 1] ]
   ;ask patches with [act1 = 1 and act2 = 0] [set pcolor 17]
   ;ask patches with [act1 = 1 and act2 = 1] [set pcolor 27]
   ;ask patches with [act1 = 0 and act2 = 1] [set pcolor 67]
@@ -32,8 +32,8 @@ end
 
 to setup-parisians
    create-parisians nPeople [
-     set color black 
-     setxy random-xcor random-ycor 
+     set color black
+     setxy random-xcor random-ycor
     ; set act1? random 2
     ; set act2? random 2
      set EduLevel random 3
@@ -46,21 +46,21 @@ to setup-parisians
      let A2 random-float 1
      ifelse A2 < ProbabilityOfActivityEdu0 [set act2? 1] [set act2? 0]
      ]
-   
+
    ask parisians with [EduLevel = 1] [
      let A1 random-float 1
      ifelse A1 < ProbabilityOfActivityEdu1 [set act1? 1] [set act1? 0]
      let A2 random-float 1
      ifelse A2 < ProbabilityOfActivityEdu1 [set act2? 1] [set act2? 0]
      ]
-   
+
    ask parisians with [EduLevel = 2] [
      let A1 random-float 1
      ifelse A1 < ProbabilityOfActivityEdu2 [set act1? 1] [set act1? 0]
      let A2 random-float 1
      ifelse A2 < ProbabilityOfActivityEdu2 [set act2? 1] [set act2? 0]
      ]
-   
+
 ; ask parisians with [act1? = 1 and act2? = 0] [set color 13]
  ; ask parisians with [act1? = 1 and act2? = 1] [set color black]
  ; ask parisians with [act1? = 0 and act2? = 1] [set color 73]
@@ -75,8 +75,8 @@ to setup-parisians
 end
 
 to setup-butchers
-  create-butchers nPeople * EquipmentPerPerson 
-  [setxy random-xcor random-ycor 
+  create-butchers nPeople * EquipmentPerPerson
+  [setxy random-xcor random-ycor
     set shape "box"
     set color black
     set size 0.01]
@@ -92,7 +92,7 @@ end
 
 to initialise-Switches
   set switch-To-Meat 0
-set switch-To-Veg 0  
+set switch-To-Veg 0
 end
 
 to GetActive
@@ -121,7 +121,7 @@ to doA2
 end
 
 to Interact-and-update-eating-behaviour
- 
+
    if Global-Switch [
       let r-global random-float 1
       ifelse Meat? = 1 [
@@ -165,21 +165,22 @@ end
 
 
 to count-minority
-  ask patches [ 
+  ask patches [
+    if (count parisians with [Meat? = 1] != 0 and count parisians with [Meat? = 0] != 0)[
     set propGlobalMeaterPatch (count parisians-here with [Meat? = 1] * 100)/ count parisians with [Meat? = 1]
-    set propGlobalVeggiePatch (count parisians-here with [Meat? = 0] * 100)/ count parisians with [Meat? = 0]
+    set propGlobalVeggiePatch (count parisians-here with [Meat? = 0] * 100)/ count parisians with [Meat? = 0]]
    ifelse any? parisians-here [
      set propLocalMeaterPatch (count parisians-here with [Meat? = 1] * 100)/ count parisians-here
       set propLocalVeggiePatch (count parisians-here with [Meat? = 0] * 100)/ count parisians-here
       ] [
-      set propLocalMeaterPatch 0  set propLocalVeggiePatch 0 
+      set propLocalMeaterPatch 0  set propLocalVeggiePatch 0
       ]
                 ]
 end
 
 to count-switchers
   ask patches [ set switchingParisians (switchingParisians + count parisians-here with [JustSwitched? = 1]) ]
-  
+
 end
 
 to Update-globals
@@ -197,10 +198,10 @@ GRAPHICS-WINDOW
 477
 20
 722
-285
+239
 -1
 -1
-13.0
+31.333333333333332
 1
 10
 1
@@ -211,9 +212,9 @@ GRAPHICS-WINDOW
 0
 1
 0
-17
+5
 0
-17
+5
 0
 0
 1
@@ -392,17 +393,6 @@ round((count parisians with [Meat? = 1 and act1? = 0 and act2? = 0] * 100)/ coun
 1
 11
 
-MONITOR
-295
-505
-369
-550
-% meaters
-round((count parisians with [Meat? = 1 ] * 100)/ count parisians)
-17
-1
-11
-
 PLOT
 356
 342
@@ -433,7 +423,7 @@ SLIDER
 %PatchA2
 0
 100
-100
+50
 1
 1
 NIL
@@ -535,19 +525,19 @@ k-local
 k-local
 0
 1
-0.4051
+1
 0.0001
 1
 NIL
 HORIZONTAL
 
 BUTTON
-206
+200
 59
-270
+264
 92
 go50
-repeat 50 [go]
+repeat 800 [go]
 NIL
 1
 T
@@ -577,16 +567,22 @@ PENS
 "toMeat" 1.0 0 -2139308 true "" "plot switch-To-Meat"
 "toVeg" 1.0 0 -6565750 true "" "plot switch-To-Veg"
 
-MONITOR
-295
-551
-387
-596
-% meat Patch
-round((count patches with [pcolor = red]) * 100 / (count patches))
-17
+BUTTON
+286
+34
+479
+67
+loop redgreen
+\nrepeat 50[\nsetup\nlet redstop true\nwhile [redstop = true][\n\nif count parisians with [Meat? = 1 ] = 0 [\nshow \"red\" \nset redstop false]\n\nif count parisians with [Meat? = 0 ] = 0 [\nshow \"green\" \nset redstop false]\n\ngo\n\n]\n]
+NIL
 1
-11
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 ## WHAT IS IT?
@@ -931,7 +927,7 @@ Polygon -7500403 true true 270 75 225 30 30 225 75 270
 Polygon -7500403 true true 30 75 75 30 270 225 225 270
 
 @#$#@#$#@
-NetLogo 5.0.5
+NetLogo 5.3
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
