@@ -65,6 +65,9 @@ to setup-parisians
      set probaA0 pA0 / (pA0 + pA1 + pA2)
      set probaA1 pA1 / (pA0 + pA1 + pA2)
      set probaA2 pA2 / (pA0 + pA1 + pA2)
+      let randomMeat0 random-float 1
+     ifelse randomMeat0 < probaMeatEdu0  [set Meat? 1] [set Meat? 0]
+    
      ]
    
    ask parisians with [EduLevel = 1] [
@@ -93,6 +96,10 @@ to setup-parisians
      set probaA0 pA0 / (pA0 + pA1 + pA2)
      set probaA1 pA1 / (pA0 + pA1 + pA2)
      set probaA2 pA2 / (pA0 + pA1 + pA2)
+     
+       let randomMeat2 random-float 1
+     ifelse randomMeat2 < (1 - probaMeatEdu0) [set Meat? 1] [set Meat? 0]
+    
      ]
    
 ; ask parisians with [act1? = 1 and act2? = 0] [set color 13]
@@ -549,7 +556,7 @@ ProbabilityOfActivityEdu0
 ProbabilityOfActivityEdu0
 0
 1
-0.25
+0.5
 0.01
 1
 NIL
@@ -579,7 +586,7 @@ ProbabilityOfActivityEdu2
 ProbabilityOfActivityEdu2
 0
 1
-0.75
+0.5
 0.01
 1
 NIL
@@ -645,10 +652,10 @@ HORIZONTAL
 BUTTON
 206
 59
-270
+278
 92
-go50
-repeat 50 [go]
+go500
+repeat 500 [go]
 NIL
 1
 T
@@ -687,7 +694,22 @@ ElasticityEduLevel
 ElasticityEduLevel
 -1
 1
--0.51
+-0.52
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+292
+11
+464
+44
+probaMeatEdu0
+probaMeatEdu0
+0
+1
+0.22
 0.01
 1
 NIL
