@@ -115,10 +115,12 @@ to setup-patches
   let N2 (%PatchA2 / 100) * NCells
   let N1 (%PatchA1 / 100) * NCells
 
+  ;; all equal to zero
   ask patches [
     set act1 0 set act2 0 set switchingParisians 0
     set AttractEdu0 0 set AttractEdu1 0 set AttractEdu2 0
   ]
+
 
   let N1empty N1
   while [N1empty > 0 ] [
@@ -130,7 +132,7 @@ to setup-patches
      ]
   ]
 
-  repeat N2 [ ask one-of patches with [act2 = 0] [set act2 1] ]
+  repeat N2 [ ask one-of patches with [act2 = 0] [set act2 1]]
 
   repeat (1 / 3) * NCells [ ask one-of patches [set AttractEdu0 1] ]
   repeat (1 / 3) * NCells [ ask one-of patches [set AttractEdu1 1] ]
@@ -168,63 +170,126 @@ to color-activity
   ]
 end
 
+to-report get-probability [#eduLevel]
+  let A1 random-float 1
+  let A2 random-float 1
+  let _act1 0
+  let _act2 0
+  let probability 0
+
+  if #eduLevel = 0 [ set probability ProbabilityOfActivityEdu0]
+  if #eduLevel = 1 [ set probability ProbabilityOfActivityEdu1]
+  if #eduLevel = 2 [ set probability ProbabilityOfActivityEdu2]
+
+  ifelse A1 < probability [set _act1 1][set _act1 0]
+  ifelse A2 < probability [set _act2 1][set _act2 0]
+
+  report list _act1 _act2
+end
+
 to setup-parisians
+
    create-parisians nPeople [
      set color black
      let xycalculated reportXYParisian
      setxy item 0 reportXYParisian item 1 reportXYParisian
       set EduLevel random 3
+   ]
+
+   ;;REWRITE ?
+   ask parisians[
+
+     ;; get probability by EduLevel
+     let result get-probability EduLevel
+     set act1? item 0 result
+     set act2? item 1 result
      let randomMeat random-float 1
-     if randomMeat < probMeat [set Meat? 1]
-      ]
-   ask parisians with [EduLevel = 0] [
-     let A1 random-float 1
-     ifelse A1 < ProbabilityOfActivityEdu0 [set act1? 1] [set act1? 0]
-     let A2 random-float 1
-     ifelse A2 < ProbabilityOfActivityEdu0 [set act2? 1] [set act2? 0]
 
-     let pA0 1
-     let pA1 pA0 * (1 + ElasticityEduLevel)
-     let pA2 pA0 * (1 + ElasticityEduLevel) ^ 2
-     set probaA0 pA0 / (pA0 + pA1 + pA2)
-     set probaA1 pA1 / (pA0 + pA1 + pA2)
-     set probaA2 pA2 / (pA0 + pA1 + pA2)
-      let randomMeat0 random-float 1
-     ifelse randomMeat0 < probaMeatEdu0  [set Meat? 1] [set Meat? 0]
+     let pA0 0
+     let pA1 0
+     let pA2 0
+
+     if EduLevel = 0 [
+       set pA0 1
+       set pA1 pA0 * (1 + ElasticityEduLevel)
+       set pA2 pA0 * (1 + ElasticityEduLevel) ^ 2
+
+       ifelse randomMeat < probaMeatEdu0  [set Meat? 1] [set Meat? 0]
 
      ]
 
-   ask parisians with [EduLevel = 1] [
-     let A1 random-float 1
-     ifelse A1 < ProbabilityOfActivityEdu1 [set act1? 1] [set act1? 0]
-     let A2 random-float 1
-     ifelse A2 < ProbabilityOfActivityEdu1 [set act2? 1] [set act2? 0]
+     if EduLevel = 1 [
+       set pA0 pA1 * (1 + ElasticityEduLevel)
+       set pA1 1
+       set pA2 pA1 * (1 + ElasticityEduLevel)
 
-     let pA1 1
-     let pA0 pA1 * (1 + ElasticityEduLevel)
-     let pA2 pA1 * (1 + ElasticityEduLevel)
-     set probaA0 pA0 / (pA0 + pA1 + pA2)
-     set probaA1 pA1 / (pA0 + pA1 + pA2)
-     set probaA2 pA2 / (pA0 + pA1 + pA2)
+       ifelse randomMeat < probaMeatEdu1 [set Meat? 1] [set Meat? 0]
      ]
 
-   ask parisians with [EduLevel = 2] [
-     let A1 random-float 1
-     ifelse A1 < ProbabilityOfActivityEdu2 [set act1? 1] [set act1? 0]
-     let A2 random-float 1
-     ifelse A2 < ProbabilityOfActivityEdu2 [set act2? 1] [set act2? 0]
+     if EduLevel = 2 [
+       set pA1 pA2 * (1 + ElasticityEduLevel)
+       set pA0 pA2 * (1 + ElasticityEduLevel) ^ 2
+       set pA2 1
 
-     let pA2 1
-     let pA1 pA2 * (1 + ElasticityEduLevel)
-     let pA0 pA2 * (1 + ElasticityEduLevel) ^ 2
+       ifelse randomMeat < probaMeatEdu2 [set Meat? 1] [set Meat? 0]
+
+     ]
+
+     ;; probabilité d'aller tirer patch activité d'éducation 0
      set probaA0 pA0 / (pA0 + pA1 + pA2)
      set probaA1 pA1 / (pA0 + pA1 + pA2)
      set probaA2 pA2 / (pA0 + pA1 + pA2)
 
-       let randomMeat2 random-float 1
-     ifelse randomMeat2 < (1 - probaMeatEdu0) [set Meat? 1] [set Meat? 0]
+   ]
 
-     ]
+   ;; -------------
+
+;   ask parisians with [EduLevel = 0] [
+;
+;     let result get-probability ProbabilityOfActivityEdu0
+;     set act1? item 0 result
+;     set act2? item 1 result
+;
+;     let pA0 1
+;     let pA1 pA0 * (1 + ElasticityEduLevel)
+;     let pA2 pA0 * (1 + ElasticityEduLevel) ^ 2
+;     set probaA0 pA0 / (pA0 + pA1 + pA2)
+;     set probaA1 pA1 / (pA0 + pA1 + pA2)
+;     set probaA2 pA2 / (pA0 + pA1 + pA2)
+;     let randomMeat0 random-float 1
+;     ifelse randomMeat0 < probaMeatEdu0  [set Meat? 1] [set Meat? 0]
+;
+;     ]
+;
+;   ask parisians with [EduLevel = 1] [
+;     let result get-probability ProbabilityOfActivityEdu1
+;     set act1? item 0 result
+;     set act2? item 1 result
+;
+;     let pA1 1
+;     let pA0 pA1 * (1 + ElasticityEduLevel)
+;     let pA2 pA1 * (1 + ElasticityEduLevel)
+;     set probaA0 pA0 / (pA0 + pA1 + pA2)
+;     set probaA1 pA1 / (pA0 + pA1 + pA2)
+;     set probaA2 pA2 / (pA0 + pA1 + pA2)
+;     ]
+;
+;   ask parisians with [EduLevel = 2] [
+;     let result get-probability ProbabilityOfActivityEdu2
+;     set act1? item 0 result
+;     set act2? item 1 result
+;
+;     let pA2 1
+;     let pA1 pA2 * (1 + ElasticityEduLevel)
+;     let pA0 pA2 * (1 + ElasticityEduLevel) ^ 2
+;     set probaA0 pA0 / (pA0 + pA1 + pA2)
+;     set probaA1 pA1 / (pA0 + pA1 + pA2)
+;     set probaA2 pA2 / (pA0 + pA1 + pA2)
+;
+;       let randomMeat2 random-float 1
+;     ifelse randomMeat2 < (1 - probaMeatEdu0) [set Meat? 1] [set Meat? 0]
+;
+;     ]
 
 ; ask parisians with [act1? = 1 and act2? = 0] [set color 13]
  ; ask parisians with [act1? = 1 and act2? = 1] [set color black]
@@ -232,7 +297,6 @@ to setup-parisians
   ;ask parisians with [act1? = 1] [set color yellow]
  ask parisians [
    set PatchResidence patch-here
-
 
   let EduPatchForA1 random-float 1
    ifelse EduPatchForA1 < probaA0 [
@@ -488,7 +552,7 @@ nPeople
 nPeople
 0
 16000
-600
+200
 100
 1
 NIL
@@ -577,12 +641,12 @@ NIL
 1
 
 SLIDER
-43
-235
-215
-268
-probMeat
-probMeat
+291
+48
+468
+81
+probaMeatEdu1
+probaMeatEdu1
 0
 1
 0.5
@@ -826,7 +890,7 @@ probaMeatEdu0
 probaMeatEdu0
 0
 1
-0.22
+0.25
 0.01
 1
 NIL
@@ -1027,6 +1091,21 @@ A1A2
 12
 15.0
 1
+
+SLIDER
+290
+85
+462
+118
+ProbaMeatEdu2
+ProbaMeatEdu2
+0
+1
+1
+0.1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
